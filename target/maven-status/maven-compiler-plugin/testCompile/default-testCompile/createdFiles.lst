@@ -1,0 +1,3 @@
+org\acme\telemetry\TelemetryServiceTest.class
+org\acme\telemetry\TelemetryValidatorTest.class
+org\acme\telemetry\TelemetryResourceTest.class

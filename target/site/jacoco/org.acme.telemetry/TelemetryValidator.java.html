@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TelemetryValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">quarkus-telemetry</a> &gt; <a href="index.source.html" class="el_package">org.acme.telemetry</a> &gt; <span class="el_source">TelemetryValidator.java</span></div><h1>TelemetryValidator.java</h1><pre class="source lang-java linenums">package org.acme.telemetry;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.BadRequestException;
+import java.time.Instant;
+
+/**
+ * Validates input parameters for telemetry data requests.
+ * This class ensures that all parameters meet the required criteria before processing.
+ */
+@ApplicationScoped
+<span class="fc" id="L12">public class TelemetryValidator {</span>
+    
+    /**
+     * Maximum allowed time range for queries in days.
+     * This limit helps prevent excessive resource usage from very large queries.
+     */
+    private static final int MAX_TIME_RANGE_DAYS = 30;
+    
+    /**
+     * Validates the time range parameters for a telemetry request.
+     * 
+     * @param from Start time of the range
+     * @param to End time of the range
+     * @throws BadRequestException if:
+     *         - Either parameter is null
+     *         - Start time is after end time
+     *         - Time range exceeds maximum allowed duration
+     */
+    public void validateTimeRange(Instant from, Instant to) {
+<span class="pc bpc" id="L31" title="2 of 4 branches missed.">        if (from == null || to == null) {</span>
+<span class="nc" id="L32">            throw new BadRequestException(&quot;Both 'from' and 'to' parameters are required&quot;);</span>
+        }
+        
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        if (from.isAfter(to)) {</span>
+<span class="fc" id="L36">            throw new BadRequestException(&quot;'from' time must be before 'to' time&quot;);</span>
+        }
+        
+        // Calculate duration in milliseconds and compare with max allowed
+<span class="fc" id="L40">        long durationMillis = to.toEpochMilli() - from.toEpochMilli();</span>
+<span class="fc" id="L41">        long maxMillis = MAX_TIME_RANGE_DAYS * 24L * 60L * 60L * 1000L;</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (durationMillis &gt; maxMillis) {</span>
+<span class="fc" id="L43">            throw new BadRequestException(&quot;Time range cannot exceed &quot; + MAX_TIME_RANGE_DAYS + &quot; days&quot;);</span>
+        }
+<span class="fc" id="L45">    }</span>
+    
+    /**
+     * Validates the resolution parameter for data aggregation.
+     * 
+     * @param resolution Time bucket size (e.g., &quot;10s&quot;, &quot;1h&quot;, &quot;1d&quot;)
+     * @throws BadRequestException if:
+     *         - Resolution is null or empty
+     *         - Resolution format is invalid
+     *         - Resolution value is not supported
+     */
+    public void validateResolution(String resolution) {
+<span class="pc bpc" id="L57" title="1 of 4 branches missed.">        if (resolution == null || resolution.trim().isEmpty()) {</span>
+<span class="fc" id="L58">            throw new BadRequestException(&quot;Resolution parameter is required&quot;);</span>
+        }
+        
+        // List of all supported resolution values
+<span class="fc" id="L62">        String[] validResolutions = {</span>
+            &quot;10s&quot;, // 10 seconds
+            &quot;30s&quot;, // 30 seconds
+            &quot;1m&quot;,  // 1 minute
+            &quot;5m&quot;,  // 5 minutes
+            &quot;15m&quot;, // 15 minutes
+            &quot;30m&quot;, // 30 minutes
+            &quot;1h&quot;,  // 1 hour
+            &quot;6h&quot;,  // 6 hours
+            &quot;12h&quot;, // 12 hours
+            &quot;1d&quot;   // 1 day
+        };
+        
+        // Check if the provided resolution is in the list of valid values
+<span class="fc" id="L76">        boolean isValid = false;</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        for (String validRes : validResolutions) {</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">            if (validRes.equals(resolution.toLowerCase())) {</span>
+<span class="fc" id="L79">                isValid = true;</span>
+<span class="fc" id="L80">                break;</span>
+            }
+        }
+        
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if (!isValid) {</span>
+<span class="fc" id="L85">            throw new BadRequestException(</span>
+                &quot;Invalid resolution. Supported values: 10s, 30s, 1m, 5m, 15m, 30m, 1h, 6h, 12h, 1d&quot;);
+        }
+<span class="fc" id="L88">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

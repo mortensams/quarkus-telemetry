@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TelemetryService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">quarkus-telemetry</a> &gt; <a href="index.source.html" class="el_package">org.acme.telemetry</a> &gt; <span class="el_source">TelemetryService.java</span></div><h1>TelemetryService.java</h1><pre class="source lang-java linenums">package org.acme.telemetry;
+
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.io.InputStreamReader;
+import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Service responsible for processing and aggregating device telemetry data.
+ * This service reads temperature data from a CSV file and provides methods to:
+ * - Load telemetry data for a specific time range
+ * - Aggregate data into time buckets of specified duration
+ * - Calculate statistical measures (min, max, average) for each time bucket
+ */
+@ApplicationScoped
+<span class="fc" id="L25">public class TelemetryService {</span>
+    
+    /**
+     * Path to the CSV file containing telemetry data.
+     * Can be configured via application.properties using the key 'org.acme.telemetry.csv.path'
+     */
+    @ConfigProperty(name = &quot;org.acme.telemetry.csv.path&quot;, defaultValue = &quot;telemetry.csv&quot;)
+    String csvFilePath;
+
+    /**
+     * Aggregates telemetry data for a specified time range and resolution.
+     * 
+     * @param fromTime Start of the time range (inclusive)
+     * @param toTime End of the time range (exclusive)
+     * @param resolution Duration of each time bucket (e.g., 1 minute, 1 hour)
+     * @return List of aggregated telemetry data for each time bucket
+     */
+    public List&lt;AggregatedTelemetry&gt; aggregateTelemetry(Instant fromTime, Instant toTime, Duration resolution) {
+<span class="fc" id="L43">        List&lt;TelemetryRecord&gt; records = loadTelemetryData(fromTime, toTime);</span>
+<span class="fc" id="L44">        return aggregateRecords(records, resolution);</span>
+    }
+
+    /**
+     * Loads telemetry data from the CSV file for the specified time range.
+     * 
+     * @param fromTime Start time for data loading
+     * @param toTime End time for data loading
+     * @return List of individual telemetry records within the time range
+     * @throws RuntimeException if there's an error reading or parsing the CSV file
+     */
+    private List&lt;TelemetryRecord&gt; loadTelemetryData(Instant fromTime, Instant toTime) {
+<span class="fc" id="L56">        List&lt;TelemetryRecord&gt; records = new ArrayList&lt;&gt;();</span>
+
+        // Use ClassLoader to read file from resources directory
+<span class="fc" id="L59">        try (InputStreamReader isr = new InputStreamReader(</span>
+<span class="fc" id="L60">                Thread.currentThread().getContextClassLoader().getResourceAsStream(csvFilePath));</span>
+<span class="fc" id="L61">             CSVReader reader = new CSVReader(isr)) {</span>
+                
+            // Skip the header row (DeviceId,Timestamp,AmbientTemperature,DeviceTemperature)
+<span class="fc" id="L64">            reader.readNext();</span>
+
+            String[] line;
+<span class="fc bfc" id="L67" title="All 2 branches covered.">            while ((line = reader.readNext()) != null) {</span>
+                // Parse timestamp from ISO-8601 format
+<span class="fc" id="L69">                Instant timestamp = Instant.parse(line[1]);</span>
+                
+                // Performance optimization: Skip records outside the requested time range
+<span class="pc bpc" id="L72" title="2 of 4 branches missed.">                if (timestamp.isBefore(fromTime) || timestamp.isAfter(toTime)) {</span>
+<span class="nc" id="L73">                    continue;</span>
+                }
+
+                // Create a record from the CSV line
+<span class="fc" id="L77">                TelemetryRecord record = new TelemetryRecord(</span>
+                    line[0], // deviceId
+                    timestamp,
+<span class="fc" id="L80">                    Double.parseDouble(line[2]), // ambientTemperature</span>
+<span class="fc" id="L81">                    Double.parseDouble(line[3])  // deviceTemperature</span>
+                );
+<span class="fc" id="L83">                records.add(record);</span>
+<span class="fc" id="L84">            }</span>
+<span class="nc" id="L85">        } catch (IOException | CsvValidationException e) {</span>
+<span class="nc" id="L86">            throw new RuntimeException(&quot;Error reading telemetry data from &quot; + csvFilePath, e);</span>
+<span class="fc" id="L87">        }</span>
+
+<span class="fc" id="L89">        return records;</span>
+    }
+
+    /**
+     * Aggregates individual telemetry records into time buckets.
+     * The process involves:
+     * 1. Grouping records by device ID
+     * 2. For each device, creating time buckets based on the resolution
+     * 3. Calculating statistics for each bucket
+     * 
+     * @param records List of individual telemetry records to aggregate
+     * @param resolution Duration of each time bucket
+     * @return List of aggregated statistics for each time bucket
+     */
+    private List&lt;AggregatedTelemetry&gt; aggregateRecords(List&lt;TelemetryRecord&gt; records, Duration resolution) {
+        // Step 1: Group records by device ID for separate processing of each device
+<span class="fc" id="L105">        Map&lt;String, List&lt;TelemetryRecord&gt;&gt; deviceGroups = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        for (TelemetryRecord record : records) {</span>
+<span class="fc" id="L107">            deviceGroups.computeIfAbsent(record.getDeviceId(), k -&gt; new ArrayList&lt;&gt;()).add(record);</span>
+<span class="fc" id="L108">        }</span>
+
+<span class="fc" id="L110">        List&lt;AggregatedTelemetry&gt; aggregatedResults = new ArrayList&lt;&gt;();</span>
+
+        // Step 2: Process each device's records separately
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        for (Map.Entry&lt;String, List&lt;TelemetryRecord&gt;&gt; entry : deviceGroups.entrySet()) {</span>
+<span class="fc" id="L114">            String deviceId = entry.getKey();</span>
+<span class="fc" id="L115">            List&lt;TelemetryRecord&gt; deviceRecords = entry.getValue();</span>
+
+            // Sort records chronologically to ensure proper bucketing
+<span class="fc" id="L118">            deviceRecords.sort((r1, r2) -&gt; r1.getTimestamp().compareTo(r2.getTimestamp()));</span>
+
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">            if (deviceRecords.isEmpty()) {</span>
+<span class="nc" id="L121">                continue;</span>
+            }
+
+            // Find the time range for this device's data
+<span class="fc" id="L125">            Instant startTime = deviceRecords.get(0).getTimestamp();</span>
+<span class="fc" id="L126">            Instant endTime = deviceRecords.get(deviceRecords.size() - 1).getTimestamp();</span>
+
+            // Step 3: Create time buckets and aggregate data
+<span class="fc bfc" id="L129" title="All 2 branches covered.">            for (Instant bucketStart = startTime; bucketStart.isBefore(endTime); bucketStart = bucketStart.plus(resolution)) {</span>
+<span class="fc" id="L130">                final Instant bucketStartFinal = bucketStart;</span>
+<span class="fc" id="L131">                final Instant bucketEnd = bucketStart.plus(resolution);</span>
+                
+                // Filter records that fall within this time bucket
+<span class="fc" id="L134">                List&lt;TelemetryRecord&gt; bucketRecords = deviceRecords.stream()</span>
+<span class="fc bfc" id="L135" title="All 4 branches covered.">                    .filter(r -&gt; !r.getTimestamp().isBefore(bucketStartFinal) &amp;&amp; r.getTimestamp().isBefore(bucketEnd))</span>
+<span class="fc" id="L136">                    .toList();</span>
+
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">                if (!bucketRecords.isEmpty()) {</span>
+                    // Create aggregation result for this bucket
+<span class="fc" id="L140">                    AggregatedTelemetry aggregated = new AggregatedTelemetry();</span>
+<span class="fc" id="L141">                    aggregated.setDeviceId(deviceId);</span>
+<span class="fc" id="L142">                    aggregated.setStartTime(bucketStartFinal);</span>
+<span class="fc" id="L143">                    aggregated.setEndTime(bucketEnd);</span>
+<span class="fc" id="L144">                    aggregated.setRecordCount(bucketRecords.size());</span>
+
+                    // Extract temperature arrays for statistical calculations
+<span class="fc" id="L147">                    double[] ambientTemps = bucketRecords.stream()</span>
+<span class="fc" id="L148">                        .mapToDouble(TelemetryRecord::getAmbientTemperature)</span>
+<span class="fc" id="L149">                        .toArray();</span>
+<span class="fc" id="L150">                    double[] deviceTemps = bucketRecords.stream()</span>
+<span class="fc" id="L151">                        .mapToDouble(TelemetryRecord::getDeviceTemperature)</span>
+<span class="fc" id="L152">                        .toArray();</span>
+
+                    // Calculate statistics for both temperature types
+<span class="fc" id="L155">                    aggregated.setAvgAmbientTemperature(calculateAverage(ambientTemps));</span>
+<span class="fc" id="L156">                    aggregated.setMinAmbientTemperature(calculateMin(ambientTemps));</span>
+<span class="fc" id="L157">                    aggregated.setMaxAmbientTemperature(calculateMax(ambientTemps));</span>
+<span class="fc" id="L158">                    aggregated.setAvgDeviceTemperature(calculateAverage(deviceTemps));</span>
+<span class="fc" id="L159">                    aggregated.setMinDeviceTemperature(calculateMin(deviceTemps));</span>
+<span class="fc" id="L160">                    aggregated.setMaxDeviceTemperature(calculateMax(deviceTemps));</span>
+
+<span class="fc" id="L162">                    aggregatedResults.add(aggregated);</span>
+                }
+            }
+<span class="fc" id="L165">        }</span>
+
+<span class="fc" id="L167">        return aggregatedResults;</span>
+    }
+
+    /**
+     * Calculates the average value from an array of temperatures.
+     * 
+     * @param values Array of temperature values
+     * @return Average temperature, or 0 if the array is empty
+     */
+    private double calculateAverage(double[] values) {
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        if (values.length == 0) return 0;</span>
+<span class="fc" id="L178">        double sum = 0;</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        for (double value : values) {</span>
+<span class="fc" id="L180">            sum += value;</span>
+        }
+<span class="fc" id="L182">        return sum / values.length;</span>
+    }
+
+    /**
+     * Finds the minimum value in an array of temperatures.
+     * 
+     * @param values Array of temperature values
+     * @return Minimum temperature, or 0 if the array is empty
+     */
+    private double calculateMin(double[] values) {
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">        if (values.length == 0) return 0;</span>
+<span class="fc" id="L193">        double min = values[0];</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        for (double value : values) {</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">            if (value &lt; min) min = value;</span>
+        }
+<span class="fc" id="L197">        return min;</span>
+    }
+
+    /**
+     * Finds the maximum value in an array of temperatures.
+     * 
+     * @param values Array of temperature values
+     * @return Maximum temperature, or 0 if the array is empty
+     */
+    private double calculateMax(double[] values) {
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">        if (values.length == 0) return 0;</span>
+<span class="fc" id="L208">        double max = values[0];</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        for (double value : values) {</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">            if (value &gt; max) max = value;</span>
+        }
+<span class="fc" id="L212">        return max;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

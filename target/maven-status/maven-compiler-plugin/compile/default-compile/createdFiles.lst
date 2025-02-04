@@ -1,0 +1,7 @@
+org\acme\telemetry\ErrorResponse.class
+org\acme\telemetry\AggregatedTelemetry.class
+org\acme\telemetry\TelemetryValidator.class
+org\acme\telemetry\TelemetryService.class
+org\acme\telemetry\TelemetryExceptionMapper.class
+org\acme\telemetry\TelemetryRecord.class
+org\acme\telemetry\TelemetryResource.class

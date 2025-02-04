@@ -1,0 +1,8 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+quarkus-telemetry,org.acme.telemetry,TelemetryExceptionMapper,40,0,4,0,15,0,4,0,2,0
+quarkus-telemetry,org.acme.telemetry,TelemetryService,17,356,7,29,4,72,7,21,0,10
+quarkus-telemetry,org.acme.telemetry,TelemetryResource,44,85,12,5,14,22,12,4,0,3
+quarkus-telemetry,org.acme.telemetry,ErrorResponse,8,15,0,0,4,6,2,3,2,3
+quarkus-telemetry,org.acme.telemetry,AggregatedTelemetry,0,73,0,0,0,31,0,21,0,21
+quarkus-telemetry,org.acme.telemetry,TelemetryValidator,5,122,3,15,1,20,3,9,0,3
+quarkus-telemetry,org.acme.telemetry,TelemetryRecord,19,27,0,0,9,10,5,5,5,5

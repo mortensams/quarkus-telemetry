@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AggregatedTelemetry.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">quarkus-telemetry</a> &gt; <a href="index.source.html" class="el_package">org.acme.telemetry</a> &gt; <span class="el_source">AggregatedTelemetry.java</span></div><h1>AggregatedTelemetry.java</h1><pre class="source lang-java linenums">package org.acme.telemetry;
+
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import java.time.Instant;
+
+/**
+ * Represents aggregated telemetry statistics for a specific time period.
+ * This class contains statistical data (min, max, average) calculated from
+ * multiple individual telemetry readings within a time bucket.
+ */
+@Schema(name = &quot;AggregatedTelemetry&quot;, description = &quot;Aggregated telemetry statistics for a time period&quot;)
+<span class="fc" id="L12">public class AggregatedTelemetry {</span>
+    
+    @Schema(description = &quot;Device identifier&quot;, example = &quot;DEVICE_001&quot;)
+    private String deviceId;
+
+    @Schema(description = &quot;Start time of the aggregation period (inclusive)&quot;, example = &quot;2024-02-02T00:00:00Z&quot;)
+    private Instant startTime;
+
+    @Schema(description = &quot;End time of the aggregation period (exclusive)&quot;, example = &quot;2024-02-02T01:00:00Z&quot;)
+    private Instant endTime;
+
+    @Schema(description = &quot;Average ambient temperature in Celsius during the period&quot;, example = &quot;22.5&quot;)
+    private double avgAmbientTemperature;
+
+    @Schema(description = &quot;Lowest recorded ambient temperature in Celsius during the period&quot;, example = &quot;18.2&quot;)
+    private double minAmbientTemperature;
+
+    @Schema(description = &quot;Highest recorded ambient temperature in Celsius during the period&quot;, example = &quot;25.8&quot;)
+    private double maxAmbientTemperature;
+
+    @Schema(description = &quot;Average device temperature in Celsius during the period&quot;, example = &quot;50.3&quot;)
+    private double avgDeviceTemperature;
+
+    @Schema(description = &quot;Lowest recorded device temperature in Celsius during the period&quot;, example = &quot;48.5&quot;)
+    private double minDeviceTemperature;
+
+    @Schema(description = &quot;Highest recorded device temperature in Celsius during the period&quot;, example = &quot;65.2&quot;)
+    private double maxDeviceTemperature;
+
+    @Schema(description = &quot;Number of telemetry records included in this aggregation&quot;, example = &quot;3600&quot;)
+    private long recordCount;
+
+    // Getters and setters with property documentation
+
+    /** @return The device identifier */
+    public String getDeviceId() {
+<span class="fc" id="L48">        return deviceId;</span>
+    }
+
+    /** @param deviceId The device identifier to set */
+    public void setDeviceId(String deviceId) {
+<span class="fc" id="L53">        this.deviceId = deviceId;</span>
+<span class="fc" id="L54">    }</span>
+
+    /** @return Start time of the aggregation period (inclusive) */
+    public Instant getStartTime() {
+<span class="fc" id="L58">        return startTime;</span>
+    }
+
+    /** @param startTime Start time to set for the aggregation period */
+    public void setStartTime(Instant startTime) {
+<span class="fc" id="L63">        this.startTime = startTime;</span>
+<span class="fc" id="L64">    }</span>
+
+    /** @return End time of the aggregation period (exclusive) */
+    public Instant getEndTime() {
+<span class="fc" id="L68">        return endTime;</span>
+    }
+
+    /** @param endTime End time to set for the aggregation period */
+    public void setEndTime(Instant endTime) {
+<span class="fc" id="L73">        this.endTime = endTime;</span>
+<span class="fc" id="L74">    }</span>
+
+    /** @return Average ambient temperature in Celsius */
+    public double getAvgAmbientTemperature() {
+<span class="fc" id="L78">        return avgAmbientTemperature;</span>
+    }
+
+    /** @param avgAmbientTemperature Average ambient temperature to set in Celsius */
+    public void setAvgAmbientTemperature(double avgAmbientTemperature) {
+<span class="fc" id="L83">        this.avgAmbientTemperature = avgAmbientTemperature;</span>
+<span class="fc" id="L84">    }</span>
+
+    /** @return Minimum ambient temperature in Celsius */
+    public double getMinAmbientTemperature() {
+<span class="fc" id="L88">        return minAmbientTemperature;</span>
+    }
+
+    /** @param minAmbientTemperature Minimum ambient temperature to set in Celsius */
+    public void setMinAmbientTemperature(double minAmbientTemperature) {
+<span class="fc" id="L93">        this.minAmbientTemperature = minAmbientTemperature;</span>
+<span class="fc" id="L94">    }</span>
+
+    /** @return Maximum ambient temperature in Celsius */
+    public double getMaxAmbientTemperature() {
+<span class="fc" id="L98">        return maxAmbientTemperature;</span>
+    }
+
+    /** @param maxAmbientTemperature Maximum ambient temperature to set in Celsius */
+    public void setMaxAmbientTemperature(double maxAmbientTemperature) {
+<span class="fc" id="L103">        this.maxAmbientTemperature = maxAmbientTemperature;</span>
+<span class="fc" id="L104">    }</span>
+
+    /** @return Average device temperature in Celsius */
+    public double getAvgDeviceTemperature() {
+<span class="fc" id="L108">        return avgDeviceTemperature;</span>
+    }
+
+    /** @param avgDeviceTemperature Average device temperature to set in Celsius */
+    public void setAvgDeviceTemperature(double avgDeviceTemperature) {
+<span class="fc" id="L113">        this.avgDeviceTemperature = avgDeviceTemperature;</span>
+<span class="fc" id="L114">    }</span>
+
+    /** @return Minimum device temperature in Celsius */
+    public double getMinDeviceTemperature() {
+<span class="fc" id="L118">        return minDeviceTemperature;</span>
+    }
+
+    /** @param minDeviceTemperature Minimum device temperature to set in Celsius */
+    public void setMinDeviceTemperature(double minDeviceTemperature) {
+<span class="fc" id="L123">        this.minDeviceTemperature = minDeviceTemperature;</span>
+<span class="fc" id="L124">    }</span>
+
+    /** @return Maximum device temperature in Celsius */
+    public double getMaxDeviceTemperature() {
+<span class="fc" id="L128">        return maxDeviceTemperature;</span>
+    }
+
+    /** @param maxDeviceTemperature Maximum device temperature to set in Celsius */
+    public void setMaxDeviceTemperature(double maxDeviceTemperature) {
+<span class="fc" id="L133">        this.maxDeviceTemperature = maxDeviceTemperature;</span>
+<span class="fc" id="L134">    }</span>
+
+    /** @return Number of records included in this aggregation */
+    public long getRecordCount() {
+<span class="fc" id="L138">        return recordCount;</span>
+    }
+
+    /** @param recordCount Number of records to set */
+    public void setRecordCount(long recordCount) {
+<span class="fc" id="L143">        this.recordCount = recordCount;</span>
+<span class="fc" id="L144">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

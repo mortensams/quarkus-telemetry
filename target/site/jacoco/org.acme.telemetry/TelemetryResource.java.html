@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TelemetryResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">quarkus-telemetry</a> &gt; <a href="index.source.html" class="el_package">org.acme.telemetry</a> &gt; <span class="el_source">TelemetryResource.java</span></div><h1>TelemetryResource.java</h1><pre class="source lang-java linenums">package org.acme.telemetry;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+/**
+ * REST endpoint for accessing device telemetry data.
+ * Provides APIs to retrieve and aggregate temperature readings from devices.
+ * 
+ * Example usage:
+ * GET /telemetry/aggregate?from=2024-02-02T00:00:00Z&amp;to=2024-02-03T00:00:00Z&amp;resolution=1h
+ */
+@Path(&quot;/telemetry&quot;)
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+@Tag(name = &quot;Telemetry&quot;, description = &quot;Operations for device telemetry data aggregation&quot;)
+<span class="fc" id="L31">public class TelemetryResource {</span>
+
+    @Inject
+    TelemetryService telemetryService;
+    
+    @Inject
+    TelemetryValidator validator;
+
+    /**
+     * Retrieves aggregated telemetry data for a specified time range and resolution.
+     * 
+     * This endpoint aggregates temperature readings into time buckets and calculates
+     * statistics (min, max, average) for each bucket. The data can be aggregated at
+     * different resolutions, from 10 seconds to 1 day.
+     * 
+     * Example Request:
+     * GET /telemetry/aggregate?from=2024-02-02T00:00:00Z&amp;to=2024-02-03T00:00:00Z&amp;resolution=1h
+     * 
+     * @param fromTime Start time in ISO-8601 format (e.g., &quot;2024-02-02T00:00:00Z&quot;)
+     * @param toTime End time in ISO-8601 format
+     * @param resolution Time bucket size (e.g., &quot;10s&quot;, &quot;1m&quot;, &quot;1h&quot;, &quot;1d&quot;)
+     * @return Response containing list of aggregated statistics or error details
+     */
+    @GET
+    @Path(&quot;/aggregate&quot;)
+    @Operation(
+        summary = &quot;Aggregate telemetry data&quot;,
+        description = &quot;Retrieves aggregated temperature data for devices within a specified time range and resolution&quot;
+    )
+    @APIResponses(value = {
+        @APIResponse(
+            responseCode = &quot;200&quot;,
+            description = &quot;Successfully retrieved aggregated data&quot;,
+            content = @Content(mediaType = &quot;application/json&quot;,
+                schema = @Schema(implementation = AggregatedTelemetry.class))
+        ),
+        @APIResponse(
+            responseCode = &quot;400&quot;,
+            description = &quot;Invalid parameters provided&quot;,
+            content = @Content(mediaType = &quot;application/json&quot;,
+                schema = @Schema(implementation = ErrorResponse.class))
+        ),
+        @APIResponse(
+            responseCode = &quot;500&quot;,
+            description = &quot;Internal server error&quot;,
+            content = @Content(mediaType = &quot;application/json&quot;,
+                schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
+    public Response aggregateTelemetry(
+            @Parameter(description = &quot;Start time (ISO-8601 format)&quot;, 
+                      example = &quot;2024-02-02T00:00:00Z&quot;,
+                      required = true)
+            @QueryParam(&quot;from&quot;) String fromTime,
+            
+            @Parameter(description = &quot;End time (ISO-8601 format)&quot;, 
+                      example = &quot;2024-02-03T00:00:00Z&quot;,
+                      required = true)
+            @QueryParam(&quot;to&quot;) String toTime,
+            
+            @Parameter(description = &quot;Time resolution (10s, 30s, 1m, 5m, 15m, 30m, 1h, 6h, 12h, 1d)&quot;, 
+                      example = &quot;1h&quot;,
+                      required = true)
+            @QueryParam(&quot;resolution&quot;) String resolution) {
+        
+        try {
+            // Step 1: Validate parameter presence
+<span class="pc bpc" id="L98" title="2 of 6 branches missed.">            if (fromTime == null || toTime == null || resolution == null) {</span>
+<span class="fc" id="L99">                return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="fc" id="L100">                    .entity(new ErrorResponse(&quot;Missing required parameters&quot;, &quot;MISSING_PARAMETERS&quot;))</span>
+<span class="fc" id="L101">                    .build();</span>
+            }
+
+            // Step 2: Parse and validate timestamps
+<span class="fc" id="L105">            Instant from = Instant.parse(fromTime);</span>
+<span class="fc" id="L106">            Instant to = Instant.parse(toTime);</span>
+<span class="fc" id="L107">            validator.validateTimeRange(from, to);</span>
+            
+            // Step 3: Validate and parse resolution
+<span class="fc" id="L110">            validator.validateResolution(resolution);</span>
+<span class="fc" id="L111">            Duration resolutionDuration = parseDuration(resolution);</span>
+            
+            // Step 4: Retrieve aggregated data
+<span class="fc" id="L114">            List&lt;AggregatedTelemetry&gt; result = telemetryService.aggregateTelemetry(from, to, resolutionDuration);</span>
+<span class="fc" id="L115">            return Response.ok(result).build();</span>
+            
+<span class="fc" id="L117">        } catch (DateTimeParseException e) {</span>
+            // Handle invalid date format
+<span class="fc" id="L119">            return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="fc" id="L120">                .entity(new ErrorResponse(</span>
+                    &quot;Invalid date format. Use ISO-8601 format (e.g., 2024-02-02T00:00:00Z)&quot;, 
+                    &quot;INVALID_DATE_FORMAT&quot;))
+<span class="fc" id="L123">                .build();</span>
+<span class="fc" id="L124">        } catch (BadRequestException e) {</span>
+            // Handle validation errors
+<span class="fc" id="L126">            return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="fc" id="L127">                .entity(new ErrorResponse(e.getMessage(), &quot;INVALID_PARAMETERS&quot;))</span>
+<span class="fc" id="L128">                .build();</span>
+<span class="nc" id="L129">        } catch (Exception e) {</span>
+            // Handle unexpected errors
+<span class="nc" id="L131">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L132">                .entity(new ErrorResponse(&quot;Internal server error&quot;, &quot;INTERNAL_ERROR&quot;))</span>
+<span class="nc" id="L133">                .build();</span>
+        }
+    }
+
+    /**
+     * Converts a string resolution value to a Duration object.
+     * 
+     * @param resolution String value like &quot;10s&quot;, &quot;1m&quot;, &quot;1h&quot;, &quot;1d&quot;
+     * @return Corresponding Duration object
+     * @throws BadRequestException if resolution format is invalid
+     */
+    private Duration parseDuration(String resolution) {
+<span class="pc bpc" id="L145" title="10 of 11 branches missed.">        return switch (resolution.toLowerCase()) {</span>
+<span class="nc" id="L146">            case &quot;10s&quot; -&gt; Duration.ofSeconds(10);</span>
+<span class="fc" id="L147">            case &quot;30s&quot; -&gt; Duration.ofSeconds(30);</span>
+<span class="nc" id="L148">            case &quot;1m&quot; -&gt; Duration.ofMinutes(1);</span>
+<span class="nc" id="L149">            case &quot;5m&quot; -&gt; Duration.ofMinutes(5);</span>
+<span class="nc" id="L150">            case &quot;15m&quot; -&gt; Duration.ofMinutes(15);</span>
+<span class="nc" id="L151">            case &quot;30m&quot; -&gt; Duration.ofMinutes(30);</span>
+<span class="nc" id="L152">            case &quot;1h&quot; -&gt; Duration.ofHours(1);</span>
+<span class="nc" id="L153">            case &quot;6h&quot; -&gt; Duration.ofHours(6);</span>
+<span class="nc" id="L154">            case &quot;12h&quot; -&gt; Duration.ofHours(12);</span>
+<span class="nc" id="L155">            case &quot;1d&quot; -&gt; Duration.ofDays(1);</span>
+<span class="nc" id="L156">            default -&gt; throw new BadRequestException(&quot;Unsupported resolution: &quot; + resolution);</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
