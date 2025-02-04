@@ -5,7 +5,6 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  # Allow manual trigger
   workflow_dispatch:
 
 env:
@@ -28,6 +27,9 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
+        
+    - name: Make mvnw executable
+      run: chmod +x ./mvnw
 
     - name: Check code style
       uses: axel-op/googlejavaformat-action@v3
@@ -36,14 +38,14 @@ jobs:
         skip-commit: true
 
     - name: Build and run tests with Maven
-      run: mvn -B verify
+      run: ./mvnw -B verify
       
     - name: Generate JaCoCo Coverage Report
-      run: mvn jacoco:report
+      run: ./mvnw jacoco:report
       
     - name: Check Coverage Thresholds
       run: |
-        COVERAGE=$(mvn jacoco:report | grep -A 1 "Total.*class" | tail -n 1 | awk '{print $4}' | sed 's/%//')
+        COVERAGE=$(./mvnw jacoco:report | grep -A 1 "Total.*class" | tail -n 1 | awk '{print $4}' | sed 's/%//')
         if (( $(echo "$COVERAGE < 80" | bc -l) )); then
           echo "Code coverage is below 80%"
           exit 1
@@ -96,4 +98,4 @@ jobs:
         # Wait for container to be ready
         sleep 10
         # Run integration tests
-        mvn verify -Pintegration-tests
+        ./mvnw verify -Pintegration-tests

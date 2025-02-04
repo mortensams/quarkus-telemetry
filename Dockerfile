@@ -1,8 +1,22 @@
 # Build stage
 FROM eclipse-temurin:21-jdk AS builder
 WORKDIR /app
-COPY . .
-RUN ./mvnw clean package
+
+# Copy the Maven wrapper files first
+COPY .mvn/ .mvn/
+COPY mvnw mvnw.cmd ./
+COPY pom.xml ./
+
+# Make mvnw executable
+RUN chmod +x mvnw
+
+# Download dependencies first (cached layer)
+RUN ./mvnw verify clean --fail-never
+
+# Copy source and build
+COPY src ./src/
+COPY telemetry.csv ./
+RUN ./mvnw clean package -DskipTests
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-jammy
@@ -13,7 +27,7 @@ COPY --from=builder /app/target/quarkus-app/lib/ /app/lib/
 COPY --from=builder /app/target/quarkus-app/*.jar /app/
 COPY --from=builder /app/target/quarkus-app/app/ /app/app/
 COPY --from=builder /app/target/quarkus-app/quarkus/ /app/quarkus/
-COPY telemetry.csv /app/
+COPY --from=builder /app/telemetry.csv /app/
 
 # Configure the application
 ENV QUARKUS_HTTP_PORT=8080
